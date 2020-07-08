@@ -1,0 +1,43 @@
+---
+- hosts: localhost
+  become: yes
+  connection: local
+  vars:
+    keypair: "CAS"
+    instance_type: t2.micro
+    security_group:
+      - "devops_SG"
+    image: "ami-0a63f96e85105c6d3"
+    region: us-east-2
+    user_access_key: "{{ lookup('env', 'AWS_ACCESS_KEY') }}"
+    user_secret_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
+
+  tasks:
+    - name: startup new instance
+      ec2:
+         key_name: "{{ keypair }}"
+         groups: "{{ security_group }}"
+         instance_type: "{{ instance_type }}"
+         image: "{{ image }}"
+         wait: true
+         region: "{{ region }}"
+         aws_access_key: "{{ user_access_key }}"
+         aws_secret_key: "{{ user_secret_key }}"
+
+         user_data: |
+            #!/bin/bash 
+            apt update
+            apt -y install python3-pip
+            pip install boto3
+            apt -y install awscli
+
+         instance_tags:
+             Name: "new-server-name"
+
+         volumes:
+           - device_name: /dev/sda1
+             volume_type: gp2
+             volume_size: 8
+
+      register: ec2
+
